@@ -28,7 +28,7 @@ class DashboardController {
             'alertas_recientes'  => $alertas,
             'estado_general'     => $estado,
             'nodos'              => $nodos,
-            'db_conectada'       => dbConnected(),
+            'db_conectada'       => getDB() !== null,
         ];
     }
 }
