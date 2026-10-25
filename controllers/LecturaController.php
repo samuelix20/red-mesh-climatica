@@ -17,6 +17,19 @@ class LecturaController {
         $nodo = isset($p['nodo_id'])
             ? Nodo::porId((int)$p['nodo_id'])
             : Nodo::porIdentificador(trim((string)$p['identificador']));
+
+        if (!$nodo && !empty($p['identificador'])) {
+            $ident = trim((string)$p['identificador']);
+            $nuevoId = Nodo::insertar([
+                'nombre' => 'Nodo ' . $ident,
+                'identificador' => $ident,
+                'ubicacion' => 'Nodo registrado automaticamente',
+            ]);
+            if ($nuevoId > 0) {
+                $nodo = Nodo::porId($nuevoId);
+            }
+        }
+
         if (!$nodo) {
             $referencia = isset($p['nodo_id']) ? 'ID '.(int)$p['nodo_id'] : 'identificador '.(string)$p['identificador'];
             return ['ok'=>false,'error'=>"Nodo {$referencia} no encontrado"];

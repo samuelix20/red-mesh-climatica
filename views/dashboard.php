@@ -22,7 +22,7 @@ $batProm      = $d['bat_promedio']  ?? '--';
       <a href="index.php" class="nav-item active"><span class="nav-icon">🏠</span><span>Inicio</span></a>
       <a href="index.php?pagina=nodos" class="nav-item"><span class="nav-icon">📡</span><span>Nodos</span></a>
       <a href="index.php?pagina=historial" class="nav-item"><span class="nav-icon">📊</span><span>Historial</span></a>
-      <a href="index.php?pagina=alertas" class="nav-item"><span class="nav-icon">🔔</span><span>Alertas</span><span class="nav-badge"><?= $alertasCount ?></span></a>
+      <a href="index.php?pagina=alertas" class="nav-item"><span class="nav-icon">🔔</span><span>Alertas</span><span class="nav-badge" id="badge-alertas"><?= $alertasCount ?></span></a>
       <a href="index.php?pagina=configuracion" class="nav-item"><span class="nav-icon">⚙️</span><span>Configuracion</span></a>
     </nav>
     <div class="sidebar-bottom"><div class="mountain-wrap"><svg viewBox="0 0 220 120" preserveAspectRatio="none"><defs><linearGradient id="mg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2563EB" stop-opacity="0.7"/><stop offset="100%" stop-color="#080818" stop-opacity="1"/></linearGradient><linearGradient id="mg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7B2FBE" stop-opacity="0.5"/><stop offset="100%" stop-color="#080818" stop-opacity="1"/></linearGradient></defs><polygon points="0,120 0,80 40,40 80,60 110,20 140,55 180,35 220,55 220,120" fill="url(#mg1)"/><polygon points="0,120 20,100 60,70 90,85 110,50 140,75 170,60 200,75 220,65 220,120" fill="url(#mg2)"/><circle cx="110" cy="20" r="3" fill="#00D4AA" opacity="0.9"/><line x1="110" y1="17" x2="110" y2="5" stroke="#00D4AA" stroke-width="1.5" opacity="0.7"/></svg></div>
@@ -31,7 +31,7 @@ $batProm      = $d['bat_promedio']  ?? '--';
   <div class="main">
     <header class="topbar">
       <?php if(!$d['db_conectada']): ?><span class="topbar-item" style="color:#F59E0B">⚠ Modo simulado</span><?php endif; ?>
-      <div class="topbar-item"><span class="status-dot <?= $estado['css']==='red'?'red':'' ?>"></span><span><?= $estado['mensaje'] ?></span></div>
+      <div class="topbar-item"><span class="status-dot <?= $estado['css']==='red'?'red':'' ?>" id="top-status-dot"></span><span id="top-status-text"><?= $estado['mensaje'] ?></span></div>
       <div class="topbar-item">📅 <span id="top-date"></span></div>
       <div class="topbar-item">🕐 <span id="top-time"></span></div>
       <button class="topbar-btn" onclick="simularDatos()" title="Simular datos">▶</button>
@@ -60,8 +60,8 @@ $batProm      = $d['bat_promedio']  ?? '--';
         <div class="kpi-card" style="--accent:#2563EB;--accent-bg:rgba(37,99,235,.2)">
           <div class="kpi-top"><div class="kpi-icon-wrap">📶</div><svg class="kpi-sparkline" viewBox="0 0 80 32"><polyline points="0,18 16,16 32,14 48,16 64,14 80,14" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/></svg></div>
           <div class="kpi-label">Nodos en Linea</div>
-          <div class="kpi-value" id="kpi-nodos"><?= $d['nodos_activos'] ?> <span style="font-size:16px;color:var(--txt2)">/ <?= $d['nodos_total'] ?></span></div>
-          <div class="kpi-delta <?= $d['nodos_inactivos']>0?'warn':'up' ?>"><?= $d['nodos_inactivos'] ?> fuera de linea</div>
+          <div class="kpi-value" id="kpi-nodos"><?= $d['nodos_en_linea'] ?> <span style="font-size:16px;color:var(--txt2)">/ <?= $d['nodos_total'] ?></span></div>
+          <div class="kpi-delta <?= $d['nodos_fuera_linea']>0?'warn':'up' ?>" id="kpi-nodos-delta"><?= $d['nodos_fuera_linea'] ?> fuera de linea</div>
         </div>
       </div>
       <!-- Middle: Mapa + Grafica -->
@@ -74,22 +74,29 @@ $batProm      = $d['bat_promedio']  ?? '--';
             <div class="map-bg"></div>
             <svg id="mesh-svg" viewBox="0 0 500 280" xmlns="http://www.w3.org/2000/svg">
               <defs><filter id="glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+              <g id="mesh-links">
               <?php
-              $positions = [1=>[250,55],2=>[115,115],3=>[360,115],4=>[145,185],5=>[255,185],6=>[380,175]];
-              $links = [[1,2],[1,3],[2,4],[3,5],[4,5],[5,6]];
+              $positions = [1=>[250,55],2=>[115,115],3=>[360,115],4=>[145,185],5=>[255,185],6=>[380,175],7=>[70,185]];
+              $links = [[1,2],[1,3],[2,4],[3,5],[4,5],[5,6],[2,7]];
               foreach($links as [$a,$b]):
-                $p1=$positions[$a]; $p2=$positions[$b];
+                $p1=$positions[$a]??[250,140]; $p2=$positions[$b]??[250,140];
                 $nA=null; $nB=null;
                 foreach($nodos as $n){ if($n['id']==$a)$nA=$n; if($n['id']==$b)$nB=$n; }
                 $col = ($nA&&$nA['estado']==='activo'&&$nB&&$nB['estado']==='activo') ? '#10B981' : '#EF4444';
               ?>
-              <line x1="<?=$p1[0]?>" y1="<?=$p1[1]?>" x2="<?=$p2[0]?>" y2="<?=$p2[1]?>" stroke="<?=$col?>" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.6"/>
-              <?php endforeach; foreach($nodos as $n): $p=$positions[$n['id']]??[250,140]; $activo=$n['estado']==='activo'; $col=$activo?'#10B981':'#EF4444'; ?>
-              <circle cx="<?=$p[0]?>" cy="<?=$p[1]?>" r="20" fill="<?=$activo?'rgba(16,185,129,.15)':'rgba(239,68,68,.15)'?>" stroke="<?=$col?>" stroke-width="2" filter="url(#glow)"/>
-              <text x="<?=$p[0]?>" y="<?=$p[1]-4?>" text-anchor="middle" fill="<?=$col?>" font-size="12"><?=$activo?'📦':'⚠'?></text>
-              <text x="<?=$p[0]?>" y="<?=$p[1]+9?>" text-anchor="middle" fill="white" font-size="8" font-weight="bold"><?=htmlspecialchars($n['nombre'])?></text>
-              <text x="<?=$p[0]?>" y="<?=$p[1]+28?>" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="7"><?=$n['temperatura_actual']!==null?$n['temperatura_actual'].'°C | '.$n['humedad_actual'].'%':'Sin datos'?></text>
+              <line id="mesh-link-<?=$a?>-<?=$b?>" x1="<?=$p1[0]?>" y1="<?=$p1[1]?>" x2="<?=$p2[0]?>" y2="<?=$p2[1]?>" stroke="<?=$col?>" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.6"/>
               <?php endforeach; ?>
+              </g>
+              <g id="mesh-nodes">
+              <?php foreach($nodos as $n): $p=$positions[$n['id']]??[250,140]; $activo=$n['estado']==='activo'; $col=$activo?'#10B981':'#EF4444'; ?>
+              <g id="node-g-<?=$n['id']?>">
+                <circle id="node-c-<?=$n['id']?>" cx="<?=$p[0]?>" cy="<?=$p[1]?>" r="20" fill="<?=$activo?'rgba(16,185,129,.15)':'rgba(239,68,68,.15)'?>" stroke="<?=$col?>" stroke-width="2" filter="url(#glow)"/>
+                <text id="node-icon-<?=$n['id']?>" x="<?=$p[0]?>" y="<?=$p[1]-4?>" text-anchor="middle" fill="<?=$col?>" font-size="12"><?=$activo?'📦':'⚠'?></text>
+                <text x="<?=$p[0]?>" y="<?=$p[1]+9?>" text-anchor="middle" fill="white" font-size="8" font-weight="bold"><?=htmlspecialchars($n['nombre'])?></text>
+                <text id="node-val-<?=$n['id']?>" x="<?=$p[0]?>" y="<?=$p[1]+28?>" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="7"><?=$n['temperatura_actual']!==null?$n['temperatura_actual'].'°C | '.$n['humedad_actual'].'%':'Sin datos'?></text>
+              </g>
+              <?php endforeach; ?>
+              </g>
             </svg>
             <div class="map-zoom"><div class="zoom-btn">+</div><div class="zoom-btn">−</div></div>
           </div>
@@ -105,7 +112,7 @@ $batProm      = $d['bat_promedio']  ?? '--';
       <div class="bottom-grid">
         <div class="panel">
           <div class="panel-header"><span class="panel-title"><span class="icon">🔔</span> Alertas Recientes</span><a href="index.php?pagina=alertas" class="ver-todas">Ver todas →</a></div>
-          <div class="alert-list">
+          <div class="alert-list" id="dashboard-alert-list">
             <?php if(empty($alertas)): ?><div class="alert-item"><span class="alert-dot green"></span><div class="alert-body"><div class="alert-title">Sin alertas activas</div></div></div>
             <?php else: foreach($alertas as $al): $dot=Alerta::cssNivel($al['nivel']); ?>
             <div class="alert-item">
@@ -122,7 +129,7 @@ $batProm      = $d['bat_promedio']  ?? '--';
           <div class="panel-header"><span class="panel-title"><span class="icon">⚙️</span> Datos de Sensores</span></div>
           <div class="sensors-body"><table class="sensors-table">
             <thead><tr><th>Nodo</th><th>Temp</th><th>Humedad</th><th>Bateria</th><th>Estado</th></tr></thead>
-            <tbody>
+            <tbody id="sensors-table-body">
             <?php foreach($nodos as $n): $css=Nodo::cssEstado($n['estado']); ?>
             <tr>
               <td><?=htmlspecialchars($n['nombre'])?></td>
@@ -141,13 +148,13 @@ $batProm      = $d['bat_promedio']  ?? '--';
             <div class="status-op">
               <div class="status-ring"><svg viewBox="0 0 70 70" width="70" height="70">
                 <circle cx="35" cy="35" r="28" fill="none" stroke="rgba(16,185,129,.15)" stroke-width="6"/>
-                <?php $pct=max(0,min(100,(int)(($d['nodos_activos']/$d['nodos_total'])*100))); $dash=round($pct*1.759); ?>
-                <circle cx="35" cy="35" r="28" fill="none" stroke="<?=$estado['css']==='red'?'#EF4444':($estado['css']==='orange'?'#F59E0B':'#10B981')?>" stroke-width="6" stroke-dasharray="<?=$dash?> 176" stroke-linecap="round" transform="rotate(-90 35 35)"/>
-                <text x="35" y="40" text-anchor="middle" fill="white" font-size="13" font-weight="bold"><?=$pct?>%</text>
+                <?php $pct=max(0,min(100,(int)(($d['nodos_en_linea']/$d['nodos_total'])*100))); $dash=round($pct*1.759); ?>
+                <circle id="status-ring-circle" cx="35" cy="35" r="28" fill="none" stroke="<?=$estado['css']==='red'?'#EF4444':($estado['css']==='orange'?'#F59E0B':'#10B981')?>" stroke-width="6" stroke-dasharray="<?=$dash?> 176" stroke-linecap="round" transform="rotate(-90 35 35)"/>
+                <text id="status-ring-pct" x="35" y="40" text-anchor="middle" fill="white" font-size="13" font-weight="bold"><?=$pct?>%</text>
               </svg></div>
               <div class="status-info">
-                <div class="op-label" style="color:<?=$estado['css']==='red'?'#EF4444':($estado['css']==='orange'?'#F59E0B':'#00D4AA')?>"><?=$estado['mensaje']?></div>
-                <div class="op-desc"><?=$d['nodos_activos']?> de <?=$d['nodos_total']?> nodos activos. <?=$d['alertas_activas']?> alerta(s) activa(s).</div>
+                <div class="op-label" id="status-op-label" style="color:<?=$estado['css']==='red'?'#EF4444':($estado['css']==='orange'?'#F59E0B':'#00D4AA')?>"><?=$estado['mensaje']?></div>
+                <div class="op-desc" id="status-op-desc"><?=$d['nodos_en_linea']?> de <?=$d['nodos_total']?> nodos reportando. <?=$d['alertas_activas']?> alerta(s) activa(s).</div>
               </div>
             </div>
             <div class="status-badges">

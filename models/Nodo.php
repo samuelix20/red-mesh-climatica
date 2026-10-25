@@ -37,10 +37,13 @@ class Nodo {
 
     public static function resumen(): array {
         $db = getDB();
-        if (!$db) return ['total'=>6,'activos'=>4,'inactivos'=>1,'alertas'=>1,
-                          'bateria_baja'=>0,'temp_promedio'=>22.5,'hum_promedio'=>68.0,'bat_promedio'=>72.2];
+        if (!$db) return ['total'=>6,'activos'=>4,'en_linea'=>3,'fuera_linea'=>3,
+                          'inactivos'=>1,'alertas'=>1,'bateria_baja'=>0,
+                          'temp_promedio'=>22.5,'hum_promedio'=>68.0,'bat_promedio'=>72.2];
         $st = $db->query("SELECT COUNT(*) total,
             SUM(estado='activo') activos, SUM(estado='inactivo') inactivos,
+            SUM(ultima_conexion IS NOT NULL AND ultima_conexion >= DATE_SUB(NOW(), INTERVAL 10 MINUTE)) en_linea,
+            SUM(ultima_conexion IS NULL OR ultima_conexion < DATE_SUB(NOW(), INTERVAL 10 MINUTE)) fuera_linea,
             SUM(estado='alerta') alertas, SUM(estado='bateria_baja') bateria_baja,
             ROUND(AVG(temperatura_actual),1) temp_promedio,
             ROUND(AVG(humedad_actual),1)     hum_promedio,
@@ -81,7 +84,7 @@ class Nodo {
         $db = getDB();
         if (!$db) return;
         $db->query("UPDATE nodos SET estado='inactivo'
-            WHERE ultima_conexion < DATE_SUB(NOW(), INTERVAL 10 MINUTE)
+            WHERE (ultima_conexion IS NULL OR ultima_conexion < DATE_SUB(NOW(), INTERVAL 10 MINUTE))
             AND estado NOT IN ('alerta','bateria_baja')");
     }
 

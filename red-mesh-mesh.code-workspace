@@ -1,0 +1,15 @@
+{
+  "folders": [
+    {
+      "name": "mesh_gateway",
+      "path": "firmware/mesh_gateway"
+    },
+    {
+      "name": "mesh_sensor",
+      "path": "firmware/mesh_sensor"
+    }
+  ],
+  "settings": {
+    "C_Cpp.default.configurationProvider": "platformio.platformio-ide"
+  }
+}

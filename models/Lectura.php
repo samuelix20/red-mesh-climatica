@@ -33,7 +33,16 @@ class Lectura {
         $st = $db->query("SELECT ROUND(AVG(temperatura),1) temp_promedio, ROUND(AVG(humedad),1) hum_promedio
             FROM lecturas WHERE timestamp >= DATE_SUB(NOW(), INTERVAL 1 HOUR)");
         $r = $st->fetch();
-        return ['temp_promedio'=>$r['temp_promedio']??22.5,'hum_promedio'=>$r['hum_promedio']??68.0];
+        if ($r && $r['temp_promedio'] !== null) {
+            return ['temp_promedio'=>$r['temp_promedio'],'hum_promedio'=>$r['hum_promedio']];
+        }
+        $st2 = $db->query("SELECT ROUND(temperatura,1) temp_promedio, ROUND(humedad,1) hum_promedio
+            FROM lecturas ORDER BY id DESC LIMIT 1");
+        $r2 = $st2->fetch();
+        if ($r2 && $r2['temp_promedio'] !== null) {
+            return ['temp_promedio'=>$r2['temp_promedio'],'hum_promedio'=>$r2['hum_promedio']];
+        }
+        return ['temp_promedio'=>null,'hum_promedio'=>null];
     }
 
     public static function historialPorNodo(int $nodoId, string $desde='', string $hasta='', int $limite=300): array {
@@ -51,7 +60,7 @@ class Lectura {
         $db = getDB();
         if (!$db) return self::datosGraficaSimulados($rango);
         $intervalo = match($rango) { '24h'=>'24 HOUR','7d'=>'7 DAY','30d'=>'30 DAY',default=>'6 HOUR' };
-        $agrupacion = match($rango) { '7d','30d'=>'%Y-%m-%d %H:00',default=>'%Y-%m-%d %H:%i' };
+        $agrupacion = match($rango) { '7d','30d'=>'%d/%m %H:00',default=>'%H:%i' };
         $where = $nodoId > 0 ? 'AND nodo_id='.intval($nodoId) : '';
         $st = $db->query("SELECT DATE_FORMAT(timestamp,'$agrupacion') hora,
             ROUND(AVG(temperatura),1) temperatura, ROUND(AVG(humedad),1) humedad,

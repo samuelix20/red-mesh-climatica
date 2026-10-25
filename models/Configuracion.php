@@ -6,7 +6,7 @@ class Configuracion {
     private static array $defaults = [
         'temp_max'                => 30.0,
         'temp_min'                => 10.0,
-        'humedad_max'             => 90.0,
+        'humedad_max'             => 80.0,
         'humedad_min'             => 20.0,
         'bateria_minima'          => 20.0,
         'intervalo_actualizacion' => 30,

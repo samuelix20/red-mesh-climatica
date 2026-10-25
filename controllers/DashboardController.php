@@ -16,14 +16,20 @@ class DashboardController {
         $alertas    = Alerta::activas(5);
         $nodos      = Nodo::todos();
 
+        $temp = $promedios['temp_promedio'] ?? ($resNodos['temp_promedio'] ?? null);
+        $hum  = $promedios['hum_promedio']  ?? ($resNodos['hum_promedio'] ?? null);
+        $bat  = $resNodos['bat_promedio']   ?? null;
+
         return [
-            'temp_promedio'      => $promedios['temp_promedio'],
-            'hum_promedio'       => $promedios['hum_promedio'],
-            'bat_promedio'       => $resNodos['bat_promedio']  ?? 72.0,
-            'nodos_total'        => $resNodos['total']         ?? 6,
-            'nodos_activos'      => $resNodos['activos']       ?? 5,
-            'nodos_inactivos'    => $resNodos['inactivos']     ?? 1,
-            'nodos_alerta'       => $resNodos['alertas']       ?? 1,
+            'temp_promedio'      => $temp !== null ? (float)$temp : null,
+            'hum_promedio'       => $hum !== null ? (float)$hum : null,
+            'bat_promedio'       => $bat !== null ? (float)$bat : null,
+            'nodos_total'        => (int)($resNodos['total'] ?? 0),
+            'nodos_activos'      => (int)($resNodos['activos'] ?? 0),
+            'nodos_en_linea'     => (int)($resNodos['en_linea'] ?? 0),
+            'nodos_fuera_linea'  => (int)($resNodos['fuera_linea'] ?? 0),
+            'nodos_inactivos'    => (int)($resNodos['inactivos'] ?? 0),
+            'nodos_alerta'       => (int)($resNodos['alertas'] ?? 0),
             'alertas_activas'    => Alerta::conteoActivas(),
             'alertas_recientes'  => $alertas,
             'estado_general'     => $estado,
